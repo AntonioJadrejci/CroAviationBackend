@@ -1,0 +1,27 @@
+# Ignoriraj node_modules direktorij
+node_modules/
+
+# Ignoriraj .env datoteku (sadrži osjetljive podatke)
+.env
+
+# Ignoriraj logove
+*.log
+
+# Ignoriraj npm debug logove
+npm-debug.log*
+
+# Ignoriraj IDE specifične datoteke
+.vscode/
+.idea/
+
+# Ignoriraj build direktorij (ako ga imate)
+build/
+dist/
+
+# Ignoriraj dependency lock file (opcionalno, ovisno o potrebama)
+package-lock.json
+yarn.lock
+
+# Ignoriraj OS specifične datoteke
+.DS_Store
+Thumbs.db
