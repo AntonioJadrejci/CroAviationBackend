@@ -1,26 +1,22 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(bodyParser.json());
-app.use(cookieParser());
 app.use(cors());
+app.use(express.json());
 
-// Osnovna ruta
-app.get('/', (req, res) => {
-    res.send('Hello World!');
+// Testna ruta
+app.get("/api/endpoint", (req, res) => {
+    res.json({ message: "Poruka s backenda!" });
 });
 
 // Pokretanje servera
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server je pokrenut na portu ${PORT}`);
 });
