@@ -13,10 +13,10 @@ app.use(express.json());
 
 // Testna ruta
 app.get("/api/endpoint", (req, res) => {
-    res.json({ message: "Poruka s backenda!" });
+  res.json({ message: "Poruka s backenda!" });
 });
 
 // Pokretanje servera
 app.listen(PORT, () => {
-    console.log(`Server je pokrenut na portu ${PORT}`);
+  console.log(`Server je pokrenut na portu ${PORT}`);
 });
