@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const bcrypt = require("bcryptjs"); // Za hashiranje lozinki
+const jwt = require("jsonwebtoken"); // Za generiranje JWT tokena
+const { MongoClient } = require("mongodb"); // Za povezivanje s MongoDB
 
 dotenv.config();
 
@@ -11,31 +14,60 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Testna ruta
-app.get("/api/endpoint", (req, res) => {
-  res.json({ message: "Poruka s backenda!" });
-});
+// Povezivanje s MongoDB
+const uri = process.env.MONGO_URI;
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-// Ruta za prijavu
-app.post("/api/login", (req, res) => {
-  const { email, password } = req.body;
+let db;
 
-  // Ovdje dodajte logiku za provjeru korisnika u bazi podataka
-  // Primjer:
-  if (email === "test@example.com" && password === "password") {
-    res.json({ message: "Prijava uspješna", token: "dummy-token" });
-  } else {
-    res.status(401).json({ message: "Neispravni podaci za prijavu" });
-  }
+client.connect().then(() => {
+  db = client.db("CroAviation"); // Naziv baze podataka
+  console.log("Povezano s bazom podataka");
 });
 
 // Ruta za registraciju
-app.post("/api/register", (req, res) => {
+app.post("/api/register", async (req, res) => {
   const { username, email, password } = req.body;
 
-  // Ovdje dodajte logiku za registraciju korisnika u bazi podataka
-  // Primjer:
-  res.json({ message: "Registracija uspješna", token: "dummy-token" });
+  // Provjera postoji li korisnik s istim emailom
+  const existingUser = await db.collection("users").findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({ message: "Korisnik s tim emailom već postoji" });
+  }
+
+  // Hashiranje lozinke
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Spremanje korisnika u bazu podataka
+  const newUser = { username, email, password: hashedPassword };
+  await db.collection("users").insertOne(newUser);
+
+  // Generiranje JWT tokena
+  const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+  res.status(201).json({ message: "Registracija uspješna", token });
+});
+
+// Ruta za prijavu
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  // Pronalaženje korisnika u bazi podataka
+  const user = await db.collection("users").findOne({ email });
+  if (!user) {
+    return res.status(400).json({ message: "Neispravni podaci za prijavu" });
+  }
+
+  // Provjera lozinke
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(400).json({ message: "Neispravni podaci za prijavu" });
+  }
+
+  // Generiranje JWT tokena
+  const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+  res.status(200).json({ message: "Prijava uspješna", token });
 });
 
 // Ruta za odjavu
