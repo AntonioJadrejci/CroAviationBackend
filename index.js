@@ -38,6 +38,11 @@ app.post("/api/register", (req, res) => {
   res.json({ message: "Registracija uspješna", token: "dummy-token" });
 });
 
+// Ruta za odjavu
+app.post("/api/logout", (req, res) => {
+  res.json({ message: "Odjava uspješna" });
+});
+
 // Pokretanje servera
 app.listen(PORT, () => {
   console.log(`Server je pokrenut na portu ${PORT}`);
