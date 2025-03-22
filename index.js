@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // Povezivanje s MongoDB
-const uri = process.env.MONGO_URI;
+const uri = process.env.MONGO_URI; // Connection string iz .env datoteke
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 let db;
@@ -23,6 +23,9 @@ let db;
 client.connect().then(() => {
   db = client.db("CroAviation"); // Naziv baze podataka
   console.log("Povezano s bazom podataka");
+}).catch(err => {
+  console.error("Greška pri povezivanju s bazom podataka:", err);
+  process.exit(1); // Zaustavi aplikaciju ako se ne može povezati s bazom podataka
 });
 
 // Ruta za registraciju
