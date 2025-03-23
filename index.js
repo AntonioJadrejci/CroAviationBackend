@@ -16,7 +16,7 @@ app.use(express.json());
 
 // Povezivanje s MongoDB
 const uri = process.env.MONGO_URI; // Connection string iz .env datoteke
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+const client = new MongoClient(uri); // Uklonite zastarjele opcije
 
 let db;
 
