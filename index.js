@@ -109,6 +109,24 @@ app.get("/api/profile", async (req, res) => {
   }
 });
 
+// Ruta za upload profilne slike
+app.post("/api/upload-profile-image", upload.single("profileImage"), async (req, res) => {
+  const token = req.headers.authorization.split(" ")[1];
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const user = await db.collection("users").findOne({ email: decoded.email });
+
+  if (user) {
+    const profileImage = req.file ? req.file.path : null;
+    await db.collection("users").updateOne(
+      { _id: user._id },
+      { $set: { profileImage } }
+    );
+    res.json({ profileImage });
+  } else {
+    res.status(404).json({ message: "User not found" });
+  }
+});
+
 // Ruta za brisanje računa
 app.delete("/api/delete-account", async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
