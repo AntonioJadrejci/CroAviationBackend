@@ -56,7 +56,7 @@ app.post("/api/register", async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   // Spremanje korisnika u bazu podataka
-  const newUser = { username, email, password: hashedPassword, numberOfPlanes: 0 };
+  const newUser = { username, email, password: hashedPassword, numberOfPlanes: 0, profileImage: "" };
   await db.collection("users").insertOne(newUser);
 
   // Generiranje JWT tokena
