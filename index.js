@@ -192,6 +192,30 @@ app.post("/api/add-plane", authenticateToken, upload.single("planeImage"), async
   }
 });
 
+// Ruta za dohvat svih aviokompanija za određenu zračnu luku
+app.get("/api/airlines/:airport", async (req, res) => {
+  const { airport } = req.params;
+  const airlines = await db.collection("planes").distinct("airline", { airport });
+  res.json(airlines);
+});
+
+// Ruta za dohvat svih aviona za određenu aviokompaniju u zračnoj luci
+app.get("/api/planes/:airport/:airline", async (req, res) => {
+  const { airport, airline } = req.params;
+  const planes = await db.collection("planes").find({ airport, airline }).toArray();
+
+  // Dohvati korisničke podatke za svaki avion
+  const planesWithUsers = await Promise.all(planes.map(async plane => {
+    const user = await db.collection("users").findOne({ _id: plane.userId });
+    return {
+      ...plane,
+      username: user ? user.username : "Unknown"
+    };
+  }));
+
+  res.json(planesWithUsers);
+});
+
 // Ruta za dohvat aviona po zračnoj luci
 app.get("/api/planes/:airport", async (req, res) => {
   const { airport } = req.params;
