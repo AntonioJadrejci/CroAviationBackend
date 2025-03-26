@@ -41,6 +41,89 @@ const client = new MongoClient(uri)
 
 let db
 
+// Add plane endpoint
+app.post("/api/add-plane", authenticateToken, upload.single('planeImage'), async (req, res) => {
+  try {
+    const { airport, planeModel, airline, registration, arrivalDate, departureDate } = req.body
+    const userId = req.user.email // Using email as user identifier
+
+    if (!airport || !planeModel || !airline || !registration) {
+      return res.status(400).json({ message: "Required fields missing" })
+    }
+
+    const planeData = {
+      airport,
+      planeModel,
+      airline,
+      registration,
+      arrivalDate: arrivalDate || new Date(),
+      departureDate: departureDate || new Date(),
+      userId,
+      planeImage: req.file ? req.file.path : "",
+      createdAt: new Date()
+    }
+
+    // Insert plane
+    const result = await db.collection("planes").insertOne(planeData)
+
+    // Update user's plane count
+    await db.collection("users").updateOne(
+      { email: userId },
+      { $inc: { numberOfPlanes: 1 } }
+    )
+
+    res.status(201).json({
+      message: "Plane added successfully",
+      planeId: result.insertedId
+    })
+  } catch (err) {
+    console.error("Add plane error:", err)
+    res.status(500).json({ message: "Error adding plane" })
+  }
+})
+
+// Upload profile image endpoint
+app.post("/api/upload-profile-image", authenticateToken, upload.single('profileImage'), async (req, res) => {
+  try {
+    const userId = req.user.email
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No image uploaded" })
+    }
+
+    await db.collection("users").updateOne(
+      { email: userId },
+      { $set: { profileImage: req.file.path } }
+    )
+
+    res.json({
+      message: "Profile image uploaded successfully",
+      profileImage: req.file.path
+    })
+  } catch (err) {
+    console.error("Profile image upload error:", err)
+    res.status(500).json({ message: "Error uploading profile image" })
+  }
+})
+
+// Delete account endpoint
+app.delete("/api/delete-account", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.email
+
+    // Delete user's planes first
+    await db.collection("planes").deleteMany({ userId })
+
+    // Then delete user
+    await db.collection("users").deleteOne({ email: userId })
+
+    res.json({ message: "Account deleted successfully" })
+  } catch (err) {
+    console.error("Delete account error:", err)
+    res.status(500).json({ message: "Error deleting account" })
+  }
+})
+
 async function startServer() {
   try {
     await client.connect()
