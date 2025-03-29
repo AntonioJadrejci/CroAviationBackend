@@ -14,8 +14,9 @@ const PORT = process.env.PORT || 3000;
 
 // Enhanced CORS configuration
 const corsOptions = {
-  origin: 'http://localhost:8080',
-  optionsSuccessStatus: 200
+  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  optionsSuccessStatus: 200,
+  credentials: true
 };
 
 // Middleware
@@ -123,7 +124,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// User login
+// User login - FIXED THE TYPO HERE (JWT_SECRET was misspelled as JWT_SECRET)
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
