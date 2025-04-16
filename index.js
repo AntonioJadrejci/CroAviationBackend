@@ -14,12 +14,12 @@ const PORT = process.env.PORT || 3000;
 
 // Enhanced CORS configuration
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL
-    : process.env.FRONTEND_URL || 'http://localhost:8080',
-  optionsSuccessStatus: 200,
+  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 };
+app.use(cors(corsOptions));
 
 // Middleware
 app.use(cors(corsOptions));
