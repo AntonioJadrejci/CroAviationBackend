@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const { MongoClient } = require("mongodb");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 
 dotenv.config();
 
@@ -19,7 +20,6 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 };
-app.use(cors(corsOptions));
 
 // Middleware
 app.use(cors(corsOptions));
@@ -189,6 +189,9 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
 
 // Add plane endpoint
 app.post("/api/add-plane", authenticateToken, upload.single('planeImage'), async (req, res) => {
+  console.log("Add plane request received"); // Added logging
+  console.log("Files:", req.file); // Added logging
+
   try {
     const { airport, planeModel, airline, registration, arrivalDate, departureDate } = req.body;
     const userId = req.user.email;
