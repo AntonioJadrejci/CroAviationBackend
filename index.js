@@ -208,7 +208,7 @@ app.post("/api/add-plane", authenticateToken, upload.single('planeImage'), async
       arrivalDate: arrivalDate || new Date(),
       departureDate: departureDate || new Date(),
       userId,
-      planeImage: req.file ? req.file.path : "",
+      planeImage: req.file ? `/uploads/${req.file.filename}` : "",
       createdAt: new Date()
     };
 
@@ -237,7 +237,7 @@ app.post("/api/upload-profile-image", authenticateToken, upload.single('profileI
       return res.status(400).json({ message: "No image uploaded" });
     }
 
-    const relativePath = `uploads/${req.file.filename}`;
+    const relativePath = `/uploads/${req.file.filename}`;
     await db.collection("users").updateOne(
       { email: userId },
       { $set: { profileImage: relativePath } }
