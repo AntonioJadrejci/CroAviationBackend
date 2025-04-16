@@ -14,7 +14,9 @@ const PORT = process.env.PORT || 3000;
 
 // Enhanced CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.FRONTEND_URL
+    : process.env.FRONTEND_URL || 'http://localhost:8080',
   optionsSuccessStatus: 200,
   credentials: true
 };
@@ -28,10 +30,13 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Multer configuration
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, "uploads"));
+    const uploadDir = path.join(__dirname, "uploads");
+    fs.mkdirSync(uploadDir, { recursive: true });
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
 const upload = multer({ storage });
@@ -41,6 +46,15 @@ const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 
 let db;
+
+// Serve frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+  });
+}
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -220,14 +234,15 @@ app.post("/api/upload-profile-image", authenticateToken, upload.single('profileI
       return res.status(400).json({ message: "No image uploaded" });
     }
 
+    const relativePath = `uploads/${req.file.filename}`;
     await db.collection("users").updateOne(
       { email: userId },
-      { $set: { profileImage: req.file.path } }
+      { $set: { profileImage: relativePath } }
     );
 
     res.json({
       message: "Profile image uploaded successfully",
-      profileImage: req.file.path
+      profileImage: relativePath
     });
   } catch (err) {
     console.error("Profile image upload error:", err);
