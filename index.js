@@ -14,35 +14,44 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Enhanced CORS configuration
-// Enhanced CORS configuration
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Lista dopuštenih domena
+    const allowedOrigins = [
+      process.env.FRONTEND_URL, // Produkcijski frontend
+      'https://croaviationfrontend.onrender.com', // Explicitno naveden produkcijski URL
+      'http://localhost:8080', // Dev frontend
+      'http://localhost:3000'  // Dev backend (za testiranje)
+    ].filter(Boolean); // Uklanja undefined vrijednosti
+
+    // Dopusti zahtjeve bez origin headera (npr. server-to-server pozivi)
     if (!origin) return callback(null, true);
 
-    const allowedOrigins = [
-      process.env.FRONTEND_URL,
-      'http://localhost:8080', // Dev frontend
-      'http://localhost:3000'  // Dev backend (for testing)
-    ].filter(Boolean); // Remove undefined values
+    // Provjeri da li je origin u dopuštenim domenama
+    const originIsAllowed = allowedOrigins.some(allowedOrigin =>
+      origin === allowedOrigin ||
+      origin.startsWith(allowedOrigin) ||
+      new URL(origin).hostname === new URL(allowedOrigin).hostname
+    );
 
-    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+    if (originIsAllowed) {
       return callback(null, true);
     }
 
-    // In production, you might want to be more strict
+    // U produkciji budi striktniji
     if (process.env.NODE_ENV === 'production') {
-      return callback(new Error('Not allowed by CORS'));
+      console.warn(`CORS blokiran za origin: ${origin}`);
+      return callback(new Error('Not allowed by CORS'), false);
     }
 
-    // In development, be more permissive
+    // U developmentu dopusti sve (opcijski)
     return callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
-  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
-  maxAge: 86400 // Cache preflight requests for 24 hours
+  optionsSuccessStatus: 200, // Za stare browsere
+  maxAge: 86400 // Preflight cache za 24 sata
 };
 
 // Middleware
