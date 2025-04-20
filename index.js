@@ -19,6 +19,7 @@ const corsOptions = {
     // Lista dopuštenih domena
     const allowedOrigins = [
       process.env.FRONTEND_URL, // Produkcijski frontend
+      'https://croaviationfrontend.onrender.com', // Your frontend URL
       'https://croaviationfrontend.onrender.com', // Explicitno naveden produkcijski URL
       'http://localhost:8080', // Dev frontend
       'http://localhost:3000'  // Dev backend (za testiranje)
