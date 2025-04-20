@@ -3,7 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ServerApiVersion } = require("mongodb");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -41,21 +41,43 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// MongoDB connection
+// MongoDB Atlas connection with Server API version
 const uri = process.env.MONGO_URI;
-const client = new MongoClient(uri);
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+  maxPoolSize: 50,
+  connectTimeoutMS: 10000,
+  socketTimeoutMS: 45000
+});
 
 let db;
 
+// Connection events for better error handling
+client.on('serverOpening', () => {
+  console.log('MongoDB connection opening');
+});
+
+client.on('serverClosed', () => {
+  console.log('MongoDB connection closed');
+});
+
+client.on('topologyClosed', () => {
+  console.log('MongoDB topology closed');
+});
+
 // Serve frontend in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+//if (process.env.NODE_ENV === 'production') {
+//  app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
-  });
-}
-
+//  app.get('*', (req, res) => {
+//    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+//  });
+//}
+//
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -78,12 +100,24 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    database: db ? 'Connected' : 'Disconnected'
-  });
+// Health check endpoint with more detailed DB status
+app.get('/api/health', async (req, res) => {
+  try {
+    const dbStatus = db ? await client.db().admin().ping() : false;
+
+    res.json({
+      status: 'OK',
+      database: dbStatus ? 'Connected' : 'Disconnected',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'ERROR',
+      database: 'Connection failed',
+      error: err.message
+    });
+  }
 });
 
 // Token refresh endpoint
@@ -138,7 +172,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// User login - FIXED THE TYPO HERE (JWT_SECRET was misspelled as JWT_SECRET)
+// User login
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -189,8 +223,8 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
 
 // Add plane endpoint
 app.post("/api/add-plane", authenticateToken, upload.single('planeImage'), async (req, res) => {
-  console.log("Add plane request received"); // Added logging
-  console.log("Files:", req.file); // Added logging
+  console.log("Add plane request received");
+  console.log("Files:", req.file);
 
   try {
     const { airport, planeModel, airline, registration, arrivalDate, departureDate } = req.body;
@@ -270,15 +304,14 @@ app.delete("/api/delete-account", authenticateToken, async (req, res) => {
 app.get("/api/planes/:airport", async (req, res) => {
   try {
     const { airport } = req.params;
-    console.log(`Fetching planes for airport: ${airport}`); // Debug log
+    console.log(`Fetching planes for airport: ${airport}`);
 
     const planes = await db.collection("planes").find({
       airport: new RegExp(`^${airport}$`, 'i')
     }).toArray();
 
-    console.log(`Found ${planes.length} planes`); // Debug log
+    console.log(`Found ${planes.length} planes`);
 
-    // Add username to each plane
     const planesWithUsers = await Promise.all(
       planes.map(async plane => {
         const user = await db.collection("users").findOne({ email: plane.userId });
@@ -336,6 +369,19 @@ app.get("/api/planes/:airport/:airline", async (req, res) => {
   } catch (err) {
     console.error("Error fetching airline planes:", err);
     res.status(500).json({ message: "Error fetching airline planes" });
+  }
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('SIGINT received. Closing server and MongoDB connection...');
+  try {
+    await client.close();
+    console.log('MongoDB connection closed');
+    process.exit(0);
+  } catch (err) {
+    console.error('Error during shutdown:', err);
+    process.exit(1);
   }
 });
 
