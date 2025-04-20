@@ -14,11 +14,35 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Enhanced CORS configuration
+// Enhanced CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:8080', // Dev frontend
+      'http://localhost:3000'  // Dev backend (for testing)
+    ].filter(Boolean); // Remove undefined values
+
+    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+      return callback(null, true);
+    }
+
+    // In production, you might want to be more strict
+    if (process.env.NODE_ENV === 'production') {
+      return callback(new Error('Not allowed by CORS'));
+    }
+
+    // In development, be more permissive
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  maxAge: 86400 // Cache preflight requests for 24 hours
 };
 
 // Middleware
