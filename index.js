@@ -61,6 +61,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.options('*', cors(corsOptions));
+app.options("/api/upload-profile-image", cors(corsOptions));
+
+
 // Multer configuration
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -297,6 +301,8 @@ app.post("/api/add-plane", authenticateToken, upload.single('planeImage'), async
 });
 
 // Upload profile image endpoint
+app.options("/api/upload-profile-image", cors(corsOptions));
+
 app.post("/api/upload-profile-image", authenticateToken, upload.single('profileImage'), async (req, res) => {
   try {
     const userId = req.user.email;
