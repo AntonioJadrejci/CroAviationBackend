@@ -361,49 +361,6 @@ app.get("/api/planes/:airport", async (req, res) => {
   }
 });
 
-// Get airlines for specific airport
-app.get("/api/airlines/:airport", async (req, res) => {
-  try {
-    const { airport } = req.params;
-    console.log(`Fetching airlines for airport: ${airport}`);
-
-    const airlines = await db.collection("planes").distinct("airline", {
-      airport: new RegExp(`^${airport}$`, 'i')
-    });
-
-    res.json(airlines);
-  } catch (err) {
-    console.error("Error fetching airlines:", err);
-    res.status(500).json({ message: "Error fetching airlines" });
-  }
-});
-
-// Get planes for specific airport and airline
-app.get("/api/planes/:airport/:airline", async (req, res) => {
-  try {
-    const { airport, airline } = req.params;
-    const planes = await db.collection("planes").find({
-      airport: new RegExp(`^${airport}$`, 'i'),
-      airline: new RegExp(`^${airline}$`, 'i')
-    }).toArray();
-
-    const planesWithUsers = await Promise.all(
-      planes.map(async plane => {
-        const user = await db.collection("users").findOne({ email: plane.userId });
-        return {
-          ...plane,
-          username: user ? user.username : "Unknown"
-        };
-      })
-    );
-
-    res.json(planesWithUsers);
-  } catch (err) {
-    console.error("Error fetching airline planes:", err);
-    res.status(500).json({ message: "Error fetching airline planes" });
-  }
-});
-
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('SIGINT received. Closing server and MongoDB connection...');
