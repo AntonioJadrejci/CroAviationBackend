@@ -13,22 +13,22 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enhanced CORS configuration
+
 const corsOptions = {
   origin: (origin, callback) => {
-    // Lista dopuštenih domena
-    const allowedOrigins = [
-      process.env.FRONTEND_URL, // Produkcijski frontend
-      'https://croaviationfrontend.onrender.com', // Your frontend URL
-      'https://croaviationfrontend.onrender.com', // Explicitno naveden produkcijski URL
-      'http://localhost:8080', // Dev frontend
-      'http://localhost:3000'  // Dev backend (za testiranje)
-    ].filter(Boolean); // Uklanja undefined vrijednosti
 
-    // Dopusti zahtjeve bez origin headera (npr. server-to-server pozivi)
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'https://croaviationfrontend.onrender.com',
+      'https://croaviationfrontend.onrender.com',
+      'http://localhost:8080',
+      'http://localhost:3000'
+    ].filter(Boolean);
+
+
     if (!origin) return callback(null, true);
 
-    // Provjeri da li je origin u dopuštenim domenama
+
     const originIsAllowed = allowedOrigins.some(allowedOrigin =>
       origin === allowedOrigin ||
       origin.startsWith(allowedOrigin) ||
@@ -39,23 +39,23 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // U produkciji budi striktniji
+
     if (process.env.NODE_ENV === 'production') {
       console.warn(`CORS blokiran za origin: ${origin}`);
       return callback(new Error('Not allowed by CORS'), false);
     }
 
-    // U developmentu dopusti sve (opcijski)
+
     return callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
-  optionsSuccessStatus: 200, // Za stare browsere
-  maxAge: 86400 // Preflight cache za 24 sata
+  optionsSuccessStatus: 200,
+  maxAge: 86400
 };
 
-// Middleware
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -65,7 +65,7 @@ app.options('*', cors(corsOptions));
 app.options("/api/upload-profile-image", cors(corsOptions));
 
 
-// Multer configuration
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = path.join(__dirname, "uploads");
@@ -79,7 +79,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// MongoDB Atlas connection with Server API version
+
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri, {
   serverApi: {
@@ -94,7 +94,7 @@ const client = new MongoClient(uri, {
 
 let db;
 
-// Connection events for better error handling
+
 client.on('serverOpening', () => {
   console.log('MongoDB connection opening');
 });
@@ -108,7 +108,7 @@ client.on('topologyClosed', () => {
 });
 
 
-// Authentication middleware
+
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -130,7 +130,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Health check endpoint with more detailed DB status
+
 app.get('/api/health', async (req, res) => {
   try {
     const dbStatus = db ? await client.db().admin().ping() : false;
@@ -150,7 +150,7 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Token refresh endpoint
+
 app.post("/api/refresh-token", (req, res) => {
   const refreshToken = req.body.token;
   if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided' });
@@ -162,7 +162,7 @@ app.post("/api/refresh-token", (req, res) => {
   });
 });
 
-// User registration
+
 app.post("/api/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -202,7 +202,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// User login
+
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -232,7 +232,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// User profile
+
 app.get("/api/profile", authenticateToken, async (req, res) => {
   try {
     const user = await db.collection("users").findOne({ email: req.user.email });
@@ -251,7 +251,7 @@ app.get("/api/profile", authenticateToken, async (req, res) => {
   }
 });
 
-// Add plane endpoint
+
 app.post("/api/add-plane", authenticateToken, upload.single('planeImage'), async (req, res) => {
   console.log("Add plane request received");
   console.log("Files:", req.file);
@@ -292,7 +292,7 @@ app.post("/api/add-plane", authenticateToken, upload.single('planeImage'), async
   }
 });
 
-// Upload profile image endpoint
+
 app.options("/api/upload-profile-image", cors(corsOptions));
 
 app.post("/api/upload-profile-image", authenticateToken, upload.single('profileImage'), async (req, res) => {
@@ -319,7 +319,7 @@ app.post("/api/upload-profile-image", authenticateToken, upload.single('profileI
   }
 });
 
-// Delete account endpoint
+
 app.delete("/api/delete-account", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.email;
@@ -332,7 +332,7 @@ app.delete("/api/delete-account", authenticateToken, async (req, res) => {
   }
 });
 
-// Get planes for specific airport
+
 app.get("/api/planes/:airport", async (req, res) => {
   try {
     const { airport } = req.params;
@@ -361,7 +361,6 @@ app.get("/api/planes/:airport", async (req, res) => {
   }
 });
 
-// Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('SIGINT received. Closing server and MongoDB connection...');
   try {
@@ -374,14 +373,14 @@ process.on('SIGINT', async () => {
   }
 });
 
-// Start the server
+
 async function startServer() {
   try {
     await client.connect();
     db = client.db("CroAviation");
     console.log("Connected to MongoDB database");
 
-    // Create indexes
+
     await db.collection("users").createIndex({ email: 1 }, { unique: true });
     await db.collection("planes").createIndex({ airport: 1 });
     await db.collection("planes").createIndex({ airline: 1 });
